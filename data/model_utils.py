@@ -52,14 +52,17 @@ class LM:
         else:
             raise ValueError("Invalid model_type. Choose 'vllm', 'hf', 'openai', or 'anthropic'.")
         
-    def generate(self, question, partial_answer, num_rollouts=None):
+    def generate(self, question, partial_answer, num_rollouts=None, single_pass_mode=False):
         if num_rollouts is None:
             num_rollouts = self.num_rollouts
         prompt = question + partial_answer
         if self.model_type == "vllm":
             return self.generate_vllm(prompt, num_rollouts)
         elif self.model_type == "hf":
-            return self.generate_hf(prompt, num_rollouts)
+            if single_pass_mode:
+                return self.single_pass_generate_hf(prompt, num_rollouts)
+            else:
+                return self.generate_hf(prompt, num_rollouts)
         elif self.model_type == "anthropic" or self.model_type == "openai":
             return self.generate_api(prompt, num_rollouts)
 

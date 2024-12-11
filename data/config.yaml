@@ -1,5 +1,6 @@
 input:
   json_file_path: 'extracted_problems_and_answers.json'
+  example_limit: 100
 
 output:
   file_prefix: 'math'
@@ -16,7 +17,7 @@ model:
   # default
   # model_name: "Qwen/Qwen2.5-Math-7B-Instruct"
   # cse291a00 project
-  model_name: "Qwen2.5-Math-1.5B-Instruct"
+  model_name: "Qwen/Qwen2.5-Math-1.5B-Instruct"
   model_args:
     max_tokens: 200
     temperature_range: [0.7, 1.0]

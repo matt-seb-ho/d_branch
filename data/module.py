@@ -37,12 +37,7 @@ def check_correctness(expected_answer, generated_response):
 
 def perform_rollouts(node, model: LM, num_rollouts=None, single_pass_mode=False):
     correctness_flags = []
-    if single_pass_mode:
-        results = model.single_pass_generate_hf(
-            node.question, node.partial_answer, num_rollouts
-        )
-    else:
-        results = model.generate(node.question, node.partial_answer, num_rollouts)
+    results = model.generate(node.question, node.partial_answer, num_rollouts, single_pass_mode=single_pass_mode)
     for result in results:
         node.add_rollout(result)
         is_correct = check_correctness(node.correct_answer, result)

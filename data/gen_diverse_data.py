@@ -6,7 +6,7 @@ import yaml
 from model_utils import LM
 from module import Node, calculate_mc_score, perform_rollouts, process_annotations
 
-from data.gen_data import load_config, load_json_file, setup_logging
+from gen_data import load_config, load_json_file, setup_logging
 
 
 def main():
@@ -20,6 +20,7 @@ def main():
     num_rollouts = config["processing"]["num_rollouts"]
     initial_rollouts = config["processing"]["initial_rollouts"]
     max_iterations = config["processing"]["max_iterations"]
+    example_limit = config["input"]["example_limit"]
 
     lm_model = LM(
         model_type=config["model"]["model_type"],
@@ -35,7 +36,8 @@ def main():
     logging.info("Started processing the JSON file.")
 
     # Load the JSON data
-    data = load_json_file(json_file_path)
+    full_data = load_json_file(json_file_path)
+    data = full_data[:example_limit]
 
     # Process each problem and its final answer
     for i, item in enumerate(data):
