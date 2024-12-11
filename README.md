@@ -71,6 +71,8 @@
   <ol>
     <li><a href="#news-and-updates">News and Updates</a></li>
     <li><a href="#features">Features</a></li>
+    <li><a href="#todo">TODO</a></li>
+    <li><a href="#benchmark">Benchmark</a></li>
     <li><a href="#plots">Plots</a></li>
     <li><a href="#provided-datasets-and-models">Datasets and Models</a></li>
     <li>
@@ -93,6 +95,7 @@
 <!-- News and Updates -->
 
 ## News and Updates
+- **[29/11/2024]** We have now added a [**demo**](https://www.modelscope.cn/studios/modelscope/OpenR_Inference) page on *ModelScope*. Many thanks to [@wangxingjun778](https://github.com/wangxingjun778) !
 - **[24/10/2024]** ***OpenR*** now supports **MCTS** reasoning ([#24](https://github.com/openreasoner/openr/pull/24))! 🌲
 - **[15/10/2024]** Our report is on [**Arxiv**](https://arxiv.org/abs/2410.09671)! 
 - **[12/10/2024]** ***OpenR*** has been released! 🚀 
@@ -104,15 +107,32 @@
   <img src="./figure/logo_text.png" alt="Description" style="width: 300px; margin-left: 50px; float: right;">
 </p>
 
-<div style="display: flex; align-items: center;">
-<ul style="list-style-type: none; padding: 0;">
-    <li><strong>✅ Process-supervision Data Generation</strong></li>
-    <li><strong>✅ Online Policy Training</strong></li>
-    <li><strong>✅ Generative and Discriminative PRM Training</strong></li>
-    <li><strong>✅ Multiple Search Strategies</strong></li>
-    <li><strong>✅ Test-time Computation and Scaling Law</strong></li>
-</ul>
-</div>
+| Feature                                | Contents                                                                                                                                                                                                                                                                              |
+|----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ✅ Process-supervision Data Generation | - [**OmegaPRM**](https://arxiv.org/abs/2406.06592): Improve Mathematical Reasoning in Language Models by Automated Process Supervision                                                                                                                                                |
+| ✅ Online Policy Training              | - [**RL Training**](train/mat/trainers): APPO, GRPO, TPPO;                                                                                                                                                                                                                            |
+| ✅ Generative and Discriminative PRM Training | - [**PRM Training**](prm/code): Supervised Training for PRMs<br> - **Generative RM Training**: [Direct GenRM](gen_rm/)                                                                                                                                                                |
+| ✅ Multiple Search Strategies          | - **Greedy Search**<br> - **Best-of-N**<br> - **Beam Search**<br> - **MCTS**<br> - [**rStar**](https://arxiv.org/pdf/2408.06195v1): Mutual Reasoning Makes Smaller LLMs Stronger Problem-Solvers<br> - **Critic-MCTS**: [Under Review](https://github.com/openreasoner/openr/pull/44) |
+| ✅ Test-time Computation and Scaling Law | TBA, see [benchmark](#benchmark)                                                                                                                                                                                                                                                      |
+
+
+## TODO
+
+
+| Feature                                 | TODO (<span style="color:red;">High Priority</span>, We value you contribution!)                                                                                                                                                                                                                                                                                                                                                                                              |
+|-----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 👨‍💻Data                                    | - Re-implement [**Journey Learning**](https://arxiv.org/abs/2410.18982)                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 👨‍💻RL Training                             | - Distributed Training<br/>- Reinforcement Fine-Tuning (RFT) [#80](https://github.com/openreasoner/openr/issues/80)                                                                                                                                                                                                                                                                                                                                                           |
+| 👨‍💻PRM                                     | - Larger-scale training<br> - GenRM-CoT implementation <br/>- Soft-label training [#57](https://github.com/openreasoner/openr/issues/57)                                                                                                                                                                                                                                                                                                                                      |
+| 👨‍💻Reasoning                               | - Optimize code structure [#53](https://github.com/openreasoner/openr/pull/53) <br> - More tasks on reasoning (AIME, etc.) [#53](https://github.com/openreasoner/openr/pull/53) <br> - Multi-modal reasoning [#82](https://github.com/openreasoner/openr/issues/82) <br> - Reasoning in code generation [#68](https://github.com/openreasoner/openr/pull/68) <br/> - Dots [#75](https://github.com/openreasoner/openr/pull/75) <br/> - Consistency check <br/> - Benchmarking |
+
+## Benchmark
+
+See [Benchmark](benchmark) !
+
+
+
+
 
 ## Plots
 
