@@ -5,6 +5,7 @@ from datetime import datetime
 import yaml
 from model_utils import LM
 from module import Node, calculate_mc_score, perform_rollouts, process_annotations
+from tqdm import tqdm
 
 from gen_data import load_config, load_json_file, setup_logging
 
@@ -40,7 +41,7 @@ def main():
     data = full_data[:example_limit]
 
     # Process each problem and its final answer
-    for i, item in enumerate(data):
+    for i, item in tqdm(enumerate(data), total=len(data)):
         problem = item.get("problem", "No problem found")
         final_answer = item.get("final_answer", "No answer found")
 

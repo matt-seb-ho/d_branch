@@ -8,8 +8,12 @@ output:
 
 processing:
   initial_rollouts: 20
-  num_rollouts: 20
-  max_iterations: 100
+  # default
+  # num_rollouts: 20
+  # max_iterations: 100
+  # cse291a00 project
+  num_rollouts: 5
+  max_iterations: 25
 
 model:
   # supported model_types: "hf", "openai", "anthropic"
