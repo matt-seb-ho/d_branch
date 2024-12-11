@@ -13,7 +13,10 @@ processing:
 model:
   # supported model_types: "hf", "openai", "anthropic"
   model_type: "hf"
-  model_name: "Qwen/Qwen2.5-Math-7B-Instruct"
+  # default
+  # model_name: "Qwen/Qwen2.5-Math-7B-Instruct"
+  # cse291a00 project
+  model_name: "Qwen2.5-Math-1.5B-Instruct"
   model_args:
     max_tokens: 200
     temperature_range: [0.7, 1.0]

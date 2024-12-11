@@ -1,10 +1,12 @@
-import torch
-import random
 import json
-import re
-import os
 import math
+import os
+import random
+import re
+
+import torch
 from model_utils import LM
+
 
 class Node:
     def __init__(self, question, partial_answer, correct_answer):
@@ -23,28 +25,37 @@ class Node:
     def increment_visits(self):
         self.visits += 1
 
+
 # Evaluation
 def check_correctness(expected_answer, generated_response):
     sentences = re.split(
-        r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', generated_response.strip()
+        r"(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s", generated_response.strip()
     )
-    last_sentence = sentences[-1] if sentences else ''
+    last_sentence = sentences[-1] if sentences else ""
     return expected_answer.strip() in last_sentence.strip()
 
-def perform_rollouts(node, model: LM, num_rollouts=None):
+
+def perform_rollouts(node, model: LM, num_rollouts=None, single_pass_mode=False):
     correctness_flags = []
-    results = model.generate(node.question, node.partial_answer, num_rollouts)
+    if single_pass_mode:
+        results = model.single_pass_generate_hf(
+            node.question, node.partial_answer, num_rollouts
+        )
+    else:
+        results = model.generate(node.question, node.partial_answer, num_rollouts)
     for result in results:
         node.add_rollout(result)
         is_correct = check_correctness(node.correct_answer, result)
         correctness_flags.append(int(is_correct))
     return node.rollouts, correctness_flags
 
+
 def calculate_mc_score(node):
     correct_count = sum(
         check_correctness(node.correct_answer, r) for r in node.rollouts
     )
     return correct_count / len(node.rollouts) if node.rollouts else 0
+
 
 def select_best_node(nodes):
     best_node = None
@@ -72,19 +83,22 @@ def select_best_node(nodes):
     else:
         return None, None, None
 
+
 def split_text_middle(text):
     text = text.strip()
     mid_idx = len(text) // 2
-    if text[mid_idx] != ' ':
-        left_space = text.rfind(' ', 0, mid_idx)
-        right_space = text.find(' ', mid_idx)
+    if text[mid_idx] != " ":
+        left_space = text.rfind(" ", 0, mid_idx)
+        right_space = text.find(" ", mid_idx)
         if left_space == -1:
             split_idx = right_space
         elif right_space == -1:
             split_idx = left_space
         else:
             split_idx = (
-                left_space if (mid_idx - left_space) <= (right_space - mid_idx) else right_space
+                left_space
+                if (mid_idx - left_space) <= (right_space - mid_idx)
+                else right_space
             )
     else:
         split_idx = mid_idx
@@ -92,7 +106,8 @@ def split_text_middle(text):
     part2 = text[split_idx:].strip()
     return part1, part2
 
-def locate_error(node, rollout, model):
+
+def locate_error(node, rollout, model, single_pass_mode=False):
     current_span = rollout
     previous_text = ""
     nodes_to_expand = []
@@ -104,10 +119,8 @@ def locate_error(node, rollout, model):
         print("----")
         print(" Left:", left_part)
         print(" Right:", right_part)
-        new_node = Node(
-            node.question, previous_text + left_part, node.correct_answer
-        )
-        perform_rollouts(new_node, model)
+        new_node = Node(node.question, previous_text + left_part, node.correct_answer)
+        perform_rollouts(new_node, model, single_pass_mode=single_pass_mode)
         mc_score = calculate_mc_score(new_node)
         new_node.mc_score = mc_score
         if mc_score == 1:
@@ -122,10 +135,12 @@ def locate_error(node, rollout, model):
     print("----")
     return nodes_to_expand, leaf_nodes
 
+
 def compute_q_value(rollout_text, mc_score, alpha=0.5, beta=0.9, max_length=500):
     part1 = alpha ** (1 - mc_score)
     part2 = beta ** (len(rollout_text) / max_length)
     return part1 * part2
+
 
 def compute_u_value(node, all_nodes, exploration_param=0.125):
     total_visits = sum(n.visits for n in all_nodes)
@@ -133,13 +148,21 @@ def compute_u_value(node, all_nodes, exploration_param=0.125):
     denominator = 1 + node.visits
     return exploration_param * (numerator / denominator)
 
-def process_annotations(question, nodes, model: LM, filename='nodes_data.json', max_iterations=100):
+
+def process_annotations(
+    question,
+    nodes,
+    model: LM,
+    filename="nodes_data.json",
+    max_iterations=100,
+    single_pass_mode=False,
+):
     print("++++++")
     iteration = 0
     leaf_nodes = []
     while True:
         node, rollout, max_qu = select_best_node(nodes)
-        if node is not None and node.partial_answer != '':
+        if node is not None and node.partial_answer != "":
             new_entry = {
                 "question": question,
                 "partial_answer": node.partial_answer,
@@ -156,11 +179,13 @@ def process_annotations(question, nodes, model: LM, filename='nodes_data.json', 
         print(node)
         print("  Rollout:", rollout, " || QU Value:", max_qu)
         node.increment_visits()
-        expanded_nodes, leaves = locate_error(node, rollout, model)
+        expanded_nodes, leaves = locate_error(
+            node, rollout, model, single_pass_mode=single_pass_mode
+        )
         if not expanded_nodes:
             continue
         nodes.extend(
-            n for n in expanded_nodes if n is not None and n.partial_answer != ''
+            n for n in expanded_nodes if n is not None and n.partial_answer != ""
         )
         leaf_nodes.extend(leaves)
     for leaf_node in leaf_nodes:
@@ -172,14 +197,15 @@ def process_annotations(question, nodes, model: LM, filename='nodes_data.json', 
         append_to_json(filename, new_entry)
     print("++++++")
 
+
 # Utils
 def append_to_json(filename, data_entry):
     if os.path.exists(filename):
-        with open(filename, 'r') as file:
+        with open(filename, "r") as file:
             data = json.load(file)
     else:
         data = []
     data.append(data_entry)
-    with open(filename, 'w') as file:
+    with open(filename, "w") as file:
         json.dump(data, file, indent=4)
     print(f"Data appended to {filename}")

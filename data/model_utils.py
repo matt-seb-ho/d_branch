@@ -3,10 +3,16 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import random
 import os
 from transformers import set_seed
-import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 from typing import List
+
+# constants
+DIVERSE_BRANCH_DELIMITER = "###"
+DIVERSE_BRANCH_PROMPT_SUFFIX_TEMPLATE = (
+    f"Please provide {{num_rollouts}} different possible next steps and "
+    f"separate them with delimiter {DIVERSE_BRANCH_DELIMITER}." 
+)
 
 # Set your Hugging Face token here
 os.environ["HUGGINGFACE_HUB_TOKEN"] = "hf_yourkey"
@@ -69,6 +75,26 @@ class LM:
             generated_tokens = outputs[0][inputs['input_ids'].shape[1]:]
             result = self.tokenizer.decode(generated_tokens, skip_special_tokens=True)
             results.append(result)
+        return results
+    
+    def single_pass_generate_hf(self, prompt, num_rollouts):
+        suffix = DIVERSE_BRANCH_PROMPT_SUFFIX_TEMPLATE.format(num_rollouts=num_rollouts)
+        diverse_prompt = f"{prompt}\n{suffix}"
+        inputs = self.tokenizer(diverse_prompt, return_tensors="pt").to("cuda")
+        results = []
+        temperature = self.temperature_range[0] # TODO: tune this hparam
+        outputs = self.model.generate(
+            **inputs, 
+            max_new_tokens=(self.max_tokens * num_rollouts), 
+            do_sample=True, 
+            temperature=temperature,
+            num_return_sequences=1
+        )
+        generated_tokens = outputs[0][inputs["input_ids"].shape[1]:]
+        generated_text = self.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+        # split the generated text into individual steps
+        for step in generated_text.split(DIVERSE_BRANCH_DELIMITER):
+            results.append(step)
         return results
 
     def generate_vllm(self, prompt, num_rollouts):
