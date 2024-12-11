@@ -9,9 +9,11 @@ from typing import List
 
 # constants
 DIVERSE_BRANCH_DELIMITER = "###"
-DIVERSE_BRANCH_PROMPT_SUFFIX_TEMPLATE = (
-    f"Please provide {{num_rollouts}} different possible next steps and "
-    f"separate them with delimiter {DIVERSE_BRANCH_DELIMITER}."
+DIVERSE_BRANCH_PROMPT_TEMPLATE = (
+    "Given the following question and incomplete answer, "
+    "provide {num_rollouts} different options for the immediate next step following the given prompt and "
+    f'separate them with delimiter "{DIVERSE_BRANCH_DELIMITER}".\n'
+    f"{DIVERSE_BRANCH_DELIMITER}\n{{prompt}}\n{DIVERSE_BRANCH_DELIMITER}\n"
 )
 
 # Set your Hugging Face token here
@@ -49,8 +51,10 @@ class LM:
         elif self.model_type == "hf":
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
             self.model = AutoModelForCausalLM.from_pretrained(
-                # model_name, torch_dtype=torch.float16, device_map="cuda"
-                model_name, torch_dtype=torch.float16, device_map="auto"
+                model_name,
+                torch_dtype=torch.float16,
+                # device_map="cuda"
+                device_map="auto",
             )
         elif self.model_type == "openai":
             import openai
@@ -101,8 +105,9 @@ class LM:
         return results
 
     def single_pass_generate_hf(self, prompt, num_rollouts):
-        suffix = DIVERSE_BRANCH_PROMPT_SUFFIX_TEMPLATE.format(num_rollouts=num_rollouts)
-        diverse_prompt = f"{prompt}\n{suffix}"
+        diverse_prompt = DIVERSE_BRANCH_PROMPT_TEMPLATE.format(
+            num_rollouts=num_rollouts, prompt=prompt
+        )
         inputs = self.tokenizer(diverse_prompt, return_tensors="pt").to("cuda")
         results = []
         temperature = self.temperature_range[0]  # TODO: tune this hparam
