@@ -2,7 +2,18 @@ import os
 import threading
 from transformers import pipeline
 from typing import List
+from math import ceil
 # Import vllm if using vLLM backend
+
+# constants
+BRANCH_DELIMITER = "###"
+BRANCHING_PROMPT_TEMPLATE = (
+    "Given the following question and incomplete answer, "
+    "provide {num_candidates} different options for the immediate next step following the given prompt and "
+    f'separate them with delimiter "{BRANCH_DELIMITER}".\n'
+    f"{BRANCH_DELIMITER}\n{{prompt}}\n{BRANCH_DELIMITER}\n"
+)
+
 try:
     from vllm import LLM, SamplingParams
 except ImportError:
@@ -83,7 +94,7 @@ class LLMService:
         else:
             raise ValueError("Unsupported model_type. Choose 'hf' for Hugging Face or 'vllm'.")
 
-    def _generate_response_hf(self, prompt: str, num_copies: int = 2) -> List[str]:
+    def _generate_response_hf(self, prompt: str, num_copies: int = 2, single_string_branches: int = 1, outer_batch_size: int = 1) -> List[str]:
         """
         Generate responses from the model based on the provided prompt, duplicated to form a batch.
 
@@ -96,25 +107,54 @@ class LLMService:
         """
         if self.pipe is None:
             raise ValueError("LLM service not started. Please call start_service() first.")
+        
+        collated_batch = []
 
-        # Create a batch of the same prompt
-        prompts = [prompt] * num_copies
+        # batching setup
+        # - we need a total of `n_copies` candidates
+        # - we generate `single_string_branches` candidates in a single generated string
+        # - hf generation pipeline allows for [n strings in/n strings out], let batch_size = n
+        # ceil(n_copies / single_string_branches) = number of individual strings needed 
+        # ceil(strings needed / batch_size) = number of LLM calls
 
-        # Generate responses from the model
-        responses = self.pipe(
-            prompts,
-            max_new_tokens=self.max_new_tokens,
-            batch_size=num_copies,
-            do_sample=True,
-            temperature=self.temperature,
-            top_k=self.top_k,
-            top_p=self.top_p,
-            return_full_text=False
-        )
-        response_message_batch = [result[0]["generated_text"] for result in responses]
+        # total = n
+        # ssb = k
+        # max parallel = m
+        # total parallel = ceil(n / k)
+        # total calls = ceil(total parallel / max parallel)
 
-        # Extract and return the generated text for each response
-        return response_message_batch
+
+        if single_string_branches == 1:
+            # Create a batch of the same prompt
+            prompts = [prompt] * num_copies
+
+            # Generate responses from the model
+            responses = self.pipe(
+                prompts,
+                max_new_tokens=self.max_new_tokens,
+                batch_size=num_copies,
+                do_sample=True,
+                temperature=self.temperature,
+                top_k=self.top_k,
+                top_p=self.top_p,
+                return_full_text=False
+            )
+            response_message_batch = [result[0]["generated_text"] for result in responses]
+            
+            # Extract and return the generated text for each response
+            return response_message_batch
+        
+        response_messages = []
+        num_llm_output_strings = ceil(num_copies / single_string_branches)
+        for outer_batch_idx in range(0, num_llm_output_strings, outer_batch_size):
+            curr_outer_batch_size = min(outer_batch_size, num_llm_output_strings - outer_batch_idx)
+            branching_prompts = [BRANCHING_PROMPT_TEMPLATE.format(
+                num_candidates=single_string_branches,
+                prompt=prompt
+            )] * (curr_outer_batch_size
+            if (curr_outer_batch_size * single_string_branches) + len(response_messages) > num_copies:
+
+        
 
     def _generate_response_vllm(self, prompt: str, num_copies: int) -> List[str]:
         """
